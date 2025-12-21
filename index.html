@@ -62,8 +62,11 @@ th{background:#123c3c}
   </label>
 
   <label style="margin-left:14px">
-    <input type="checkbox" id="ignorePadas" onchange="recalc()">
-    Ignore Padas
+    <input type="checkbox" id="ignorePadas" onchange="recalc()"> Ignore Padas
+  </label>
+
+  <label style="margin-left:14px">
+    <input type="checkbox" id="rkLink" checked> Rahu+Ketu
   </label>
 
   <span style="margin-left:14px">
@@ -121,8 +124,8 @@ const nakLords = [
 ];
 
 const rasiNames = [
-"1-ಮೇಷ","2-ವೃಷಭ","3-ಮಿಥುನ","4-ಕಟಕ","5-ಸಿಂಹ","6-ಕನ್ಯಾ",
-"7-ತುಲಾ","8-ವೃಶ್ಚಿಕ","9-ಧನಸ್ಸು","10-ಮಕರ","11-ಕುಂಭ","12-ಮೀನಾ"
+"ಮೇಷ","ವೃಷಭ","ಮಿಥುನ","ಕಟಕ","ಸಿಂಹ","ಕನ್ಯಾ",
+"ತುಲಾ","ವೃಶ್ಚಿಕ","ಧನಸ್ಸು","ಮಕರ","ಕುಂಭ","ಮೀನಾ"
 ];
 
 const taraNames = [
@@ -155,7 +158,8 @@ let padaCount = 0;
 for(let i=0;i<27;i++){
   for(let p=1;p<=4;p++){
     const rasiIndex = Math.floor(padaCount / 9);
-    padas.push(`${rasiNames[rasiIndex]} - ${nakLords[i]} - ${nak[i]} - ${p}`);
+    const rasiNo = rasiIndex + 1;
+    padas.push(`${rasiNames[rasiIndex]} - ${rasiNo} - ${nakLords[i]} - ${nak[i]} - ${p}`);
     padaCount++;
   }
 }
@@ -167,11 +171,11 @@ const TOTAL_PADAS = padas.length;
 const pivot = document.getElementById("pivot");
 pivot.innerHTML =
   '<option value="">-- Select Nakshatra --</option>' +
-  padas.map(v=>`<option value="${v}">${v}</option>`).join("");
+  padas.map((v,i)=>`<option value="${v}">[${i+1}].  ${v}</option>`).join("");
 
 function buildSelect(){
   return '<option value="">-- Select --</option>' +
-    padas.map(v=>`<option value="${v}">${v}</option>`).join("");
+    padas.map((v,i)=>`<option value="${v}">[${i+1}].  ${v}</option>`).join("");
 }
 
 const majorBody = document.getElementById("majorBody");
@@ -214,11 +218,14 @@ outerPlanets.forEach(p=>{
   `);
 });
 
-/* ===================== RAHU–KETU 180° LOGIC ===================== */
+/* ===================== RAHU–KETU OPTIONAL LINK ===================== */
 
 function onPlanetChange(sel, planet){
   const idx = padas.indexOf(sel.value);
   if(idx < 0){ recalc(); return; }
+
+  const link = document.getElementById("rkLink").checked;
+  if(!link){ recalc(); return; }
 
   const rows = [...majorBody.querySelectorAll("tr")];
   const rahuRow = rows.find(r=>r.children[0].innerText==="Rahu");
@@ -302,6 +309,7 @@ function saveChart(){
   const data = {
     pivot: pivot.value,
     system: document.querySelector('input[name="sys"]:checked').value,
+    rkLink: document.getElementById("rkLink").checked,
     major: [...majorBody.querySelectorAll("tr")].map(tr=>({
       v: tr.querySelector("select").value,
       r: tr.querySelector("input[type=checkbox]")?.checked || false
@@ -336,6 +344,7 @@ function loadChart(){
 
       pivot.value = d.pivot;
       document.querySelector(`input[value="${d.system}"]`).checked = true;
+      document.getElementById("rkLink").checked = d.rkLink ?? true;
 
       [...majorBody.querySelectorAll("tr")].forEach((tr,i)=>{
         tr.querySelector("select").value = d.major[i]?.v || "";
@@ -366,6 +375,7 @@ function clearAll(){
   pivot.value="";
   document.querySelectorAll("select").forEach(s=>s.value="");
   document.querySelectorAll("input[type=checkbox]").forEach(c=>c.checked=false);
+  document.getElementById("rkLink").checked=true;
   document.querySelectorAll(".house,.tara").forEach(td=>td.innerText="");
 }
 </script>
