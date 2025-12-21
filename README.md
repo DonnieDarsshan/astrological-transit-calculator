@@ -55,3 +55,44 @@ No backend. No frameworks. Fully client-side.
 ## 🚀 Live Demo (GitHub Pages)
 
 👉 **Demo Link:**  
+
+
+(Replace `YOUR_USERNAME` with your GitHub username)
+
+---
+
+## 📂 How to Use
+
+1. Select **Pivot Nakshatra**
+2. Choose **Vedic** or **KP**
+3. Select transit Nakshatras for planets
+4. Enable retrograde if applicable
+5. View:
+   - House position
+   - Tara Bala
+6. Save or Load charts as JSON
+
+---
+
+## 🛠 Tech Stack
+
+- HTML5
+- CSS3
+- Vanilla JavaScript
+
+No external libraries.
+
+---
+
+## ⚠️ Notes
+
+- Designed for **astrological research & experimentation**
+- Logic intentionally kept explicit (no optimization/refactoring)
+- Best viewed on desktop browsers
+
+---
+
+## 📜 License
+
+Free for personal and educational use.
+
