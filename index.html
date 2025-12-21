@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Astrological Transit Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  background:#0e1f1c;
+  color:#f6e7b2;
+  font-family:Arial,sans-serif;
+  padding:20px;
+}
+h1{text-align:center;color:#facc15}
+.panel{border:2px solid #c9a227;padding:14px;margin-bottom:18px}
+select,button,input{
+  background:#102a2a;
+  color:#fef3c7;
+  border:1px solid #c9a227;
+  padding:6px;
+  font-weight:700;
+}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #c9a227;padding:6px;text-align:center}
+th{background:#123c3c}
+.section{font-size:18px;color:#fbbf24;margin-top:14px}
+.tara-good{color:#22c55e;font-weight:800}
+.tara-bad{color:#ef4444;font-weight:800}
+.tara-mixed{color:#fb923c;font-weight:800}
+
+/* GOLDEN LABEL */
+.gold-label{
+  display:inline-block;
+  padding:6px 14px;
+  margin-right:8px;
+  background:linear-gradient(145deg,#facc15,#c9a227,#facc15);
+  color:#1f2933;
+  font-weight:900;
+  border-radius:6px;
+  border:2px solid #fde68a;
+  box-shadow:inset 0 0 6px rgba(255,255,255,0.4),
+             0 0 6px rgba(250,204,21,0.6);
+}
+</style>
+</head>
+
+<body>
+
+<h1>Astrological Transit Calculator</h1>
+
+<div class="panel">
+
+  <span class="gold-label">Nakshatra</span>
+  <select id="pivot" onchange="recalc()" oninput="recalc()"></select>
+
+  <label style="margin-left:10px">
+    <input type="radio" name="sys" value="vedic" checked onchange="recalc()"> Vedic
+  </label>
+  <label>
+    <input type="radio" name="sys" value="kp" onchange="recalc()"> KP
+  </label>
+
+  <label style="margin-left:14px">
+    <input type="checkbox" id="ignorePadas" onchange="recalc()">
+    Ignore Padas
+  </label>
+
+  <span style="margin-left:14px">
+    <button onclick="saveChart()">Save</button>
+    <button onclick="loadChart()">Load</button>
+    <button onclick="clearAll()">Clear</button>
+  </span>
+
+</div>
+
+<div class="panel">
+
+  <div class="section">Major Planets</div>
+  <table>
+    <thead>
+      <tr><th>Planet</th><th>Transit Nakshatra</th><th>House</th><th>Tara</th><th>Retro</th></tr>
+    </thead>
+    <tbody id="majorBody"></tbody>
+  </table>
+
+  <div class="section">Minor Planets</div>
+  <table>
+    <thead>
+      <tr><th>Planet</th><th>Transit Nakshatra</th><th>House</th><th>Tara</th><th></th></tr>
+    </thead>
+    <tbody id="minorBody"></tbody>
+  </table>
+
+  <div class="section">Outer Planets</div>
+  <table>
+    <thead>
+      <tr><th>Planet</th><th>Transit Nakshatra</th><th>House</th><th>Tara</th><th></th></tr>
+    </thead>
+    <tbody id="outerBody"></tbody>
+  </table>
+
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none"/>
+
+<script>
+/* ===================== DATA ===================== */
+
+const nak = [
+"Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha",
+"Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha",
+"Moola","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha",
+"Purva Bhadrapada","Uttara Bhadrapada","Revati"
+];
+
+const nakLords = [
+"Ketu","Venus","Surya","Chandra","Mangala","Rahu","Jupiter","Saturn","Budha",
+"Ketu","Venus","Surya","Chandra","Mangala","Rahu","Jupiter","Saturn","Budha",
+"Ketu","Venus","Surya","Chandra","Mangala","Rahu","Jupiter","Saturn","Budha"
+];
+
+const rasiNames = [
+"1-ಮೇಷ","2-ವೃಷಭ","3-ಮಿಥುನ","4-ಕಟಕ","5-ಸಿಂಹ","6-ಕನ್ಯಾ",
+"7-ತುಲಾ","8-ವೃಶ್ಚಿಕ","9-ಧನಸ್ಸು","10-ಮಕರ","11-ಕುಂಭ","12-ಮೀನಾ"
+];
+
+const taraNames = [
+"Janma","Sampat","Vipath","Kshema","Pratyari",
+"Sadhana","Vadha","Mitra","Athi-Mithra"
+];
+
+const majorPlanets = [
+  {name:"Shani", retro:false},
+  {name:"Guru", retro:false},
+  {name:"Rahu", retro:true},
+  {name:"Ketu", retro:true}
+];
+
+const minorPlanets = [
+  "Surya","Mangala","Budha","Venus","Chandra"
+];
+
+const outerPlanets = [
+  "Uranus (Vayu)",
+  "Neptune (Varuna)",
+  "Pluto (Yama)"
+];
+
+/* ===================== PADAS ===================== */
+
+const padas = [];
+let padaCount = 0;
+
+for(let i=0;i<27;i++){
+  for(let p=1;p<=4;p++){
+    const rasiIndex = Math.floor(padaCount / 9);
+    padas.push(`${rasiNames[rasiIndex]} - ${nakLords[i]} - ${nak[i]} - ${p}`);
+    padaCount++;
+  }
+}
+
+const TOTAL_PADAS = padas.length;
+
+/* ===================== UI BUILD ===================== */
+
+const pivot = document.getElementById("pivot");
+pivot.innerHTML =
+  '<option value="">-- Select Nakshatra --</option>' +
+  padas.map(v=>`<option value="${v}">${v}</option>`).join("");
+
+function buildSelect(){
+  return '<option value="">-- Select --</option>' +
+    padas.map(v=>`<option value="${v}">${v}</option>`).join("");
+}
+
+const majorBody = document.getElementById("majorBody");
+const minorBody = document.getElementById("minorBody");
+const outerBody = document.getElementById("outerBody");
+
+majorPlanets.forEach(p=>{
+  majorBody.insertAdjacentHTML("beforeend", `
+    <tr>
+      <td>${p.name}</td>
+      <td><select onchange="onPlanetChange(this,'${p.name}')" oninput="onPlanetChange(this,'${p.name}')">${buildSelect()}</select></td>
+      <td class="house"></td>
+      <td class="tara"></td>
+      <td>${p.retro ? '<input type="checkbox" checked onchange="recalc()">' : ''}</td>
+    </tr>
+  `);
+});
+
+minorPlanets.forEach(p=>{
+  minorBody.insertAdjacentHTML("beforeend", `
+    <tr>
+      <td>${p}</td>
+      <td><select onchange="recalc()" oninput="recalc()">${buildSelect()}</select></td>
+      <td class="house"></td>
+      <td class="tara"></td>
+      <td></td>
+    </tr>
+  `);
+});
+
+outerPlanets.forEach(p=>{
+  outerBody.insertAdjacentHTML("beforeend", `
+    <tr>
+      <td>${p}</td>
+      <td><select onchange="recalc()" oninput="recalc()">${buildSelect()}</select></td>
+      <td class="house"></td>
+      <td class="tara"></td>
+      <td></td>
+    </tr>
+  `);
+});
+
+/* ===================== RAHU–KETU 180° LOGIC ===================== */
+
+function onPlanetChange(sel, planet){
+  const idx = padas.indexOf(sel.value);
+  if(idx < 0){ recalc(); return; }
+
+  const rows = [...majorBody.querySelectorAll("tr")];
+  const rahuRow = rows.find(r=>r.children[0].innerText==="Rahu");
+  const ketuRow = rows.find(r=>r.children[0].innerText==="Ketu");
+
+  const oppositeIndex = (idx + 54) % TOTAL_PADAS;
+
+  if(planet === "Rahu"){
+    ketuRow.querySelector("select").value = padas[oppositeIndex];
+  }
+  if(planet === "Ketu"){
+    rahuRow.querySelector("select").value = padas[oppositeIndex];
+  }
+
+  recalc();
+}
+
+/* ===================== CORE LOGIC (LOCKED) ===================== */
+
+function recalc(){
+  if(!pivot.value) return;
+
+  const pivotIndex = padas.indexOf(pivot.value);
+  const pivotNakIndex = Math.floor(pivotIndex / 4);
+  const system = document.querySelector('input[name="sys"]:checked').value;
+  const ignorePadas = document.getElementById("ignorePadas").checked;
+
+  document.querySelectorAll("#majorBody tr, #minorBody tr, #outerBody tr").forEach(tr=>{
+    const sel = tr.querySelector("select").value;
+    if(!sel){
+      tr.querySelector(".house").innerText="";
+      tr.querySelector(".tara").innerText="";
+      return;
+    }
+
+    const planetIndex = padas.indexOf(sel);
+    const planetNakIndex = Math.floor(planetIndex / 4);
+
+    const retroBox = tr.querySelector("input[type=checkbox]");
+    const isRetro = retroBox ? retroBox.checked : false;
+
+    let distance;
+
+    if(ignorePadas){
+      let nakDistance = isRetro
+        ? pivotNakIndex - planetNakIndex
+        : planetNakIndex - pivotNakIndex;
+
+      nakDistance = (nakDistance + 27) % 27;
+      distance = nakDistance * 4;
+    }else{
+      distance = isRetro
+        ? pivotIndex - planetIndex
+        : planetIndex - pivotIndex;
+
+      distance = (distance + TOTAL_PADAS) % TOTAL_PADAS;
+    }
+
+    let houseDistance = system === "vedic"
+      ? (distance + 4) % TOTAL_PADAS
+      : distance;
+
+    const house = Math.floor(houseDistance / 9) % 12 + 1;
+    tr.querySelector(".house").innerText = house;
+
+    const taraIndex = Math.floor(distance / 4) % 9;
+    const tara = taraNames[taraIndex];
+
+    const td = tr.querySelector(".tara");
+    td.innerText = tara;
+    td.className = "tara " +
+      (["Vipath","Pratyari","Vadha"].includes(tara) ? "tara-bad" :
+       ["Sampat","Kshema","Sadhana","Mitra"].includes(tara) ? "tara-good" :
+       "tara-mixed");
+  });
+}
+
+/* ===================== SAVE / LOAD / CLEAR ===================== */
+
+function saveChart(){
+  const data = {
+    pivot: pivot.value,
+    system: document.querySelector('input[name="sys"]:checked').value,
+    major: [...majorBody.querySelectorAll("tr")].map(tr=>({
+      v: tr.querySelector("select").value,
+      r: tr.querySelector("input[type=checkbox]")?.checked || false
+    })),
+    minor: [...minorBody.querySelectorAll("tr")].map(tr=>({
+      v: tr.querySelector("select").value
+    })),
+    outer: [...outerBody.querySelectorAll("tr")].map(tr=>({
+      v: tr.querySelector("select").value
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "AstroTransitChart.json";
+  a.click();
+}
+
+function loadChart(){
+  const inp = document.getElementById("fileInput");
+  inp.value="";
+  inp.click();
+
+  inp.onchange = e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const d = JSON.parse(reader.result);
+
+      pivot.value = d.pivot;
+      document.querySelector(`input[value="${d.system}"]`).checked = true;
+
+      [...majorBody.querySelectorAll("tr")].forEach((tr,i)=>{
+        tr.querySelector("select").value = d.major[i]?.v || "";
+        const cb = tr.querySelector("input[type=checkbox]");
+        if(cb) cb.checked = d.major[i]?.r || false;
+      });
+
+      [...minorBody.querySelectorAll("tr")].forEach((tr,i)=>{
+        tr.querySelector("select").value = d.minor[i]?.v || "";
+      });
+
+      [...outerBody.querySelectorAll("tr")].forEach((tr,i)=>{
+        tr.querySelector("select").value = d.outer[i]?.v || "";
+      });
+
+      setTimeout(recalc,0);
+    };
+    reader.readAsText(file);
+  };
+}
+
+function clearAll(){
+  const ok = confirm(
+    "⚠️ WARNING\n\nThis will CLEAR the entire transit chart.\nThis action CANNOT be undone.\n\nDo you want to continue?"
+  );
+  if(!ok) return;
+
+  pivot.value="";
+  document.querySelectorAll("select").forEach(s=>s.value="");
+  document.querySelectorAll("input[type=checkbox]").forEach(c=>c.checked=false);
+  document.querySelectorAll(".house,.tara").forEach(td=>td.innerText="");
+}
+</script>
+
+</body>
+</html>
