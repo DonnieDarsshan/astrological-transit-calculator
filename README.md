@@ -1,6 +1,13 @@
 
 # 🌟 Astrological Transit Calculator (Vedic & KP)
 
+## 🚀 Live Demo (GitHub Pages)
+
+👉 **Demo Link:**  
+
+https://donniedarsshan.github.io/astrological-transit-calculator/
+
+
 A web-based astrological transit calculator built using pure **HTML, CSS, and JavaScript**.
 
 This tool helps astrologers analyze **planetary transits** based on:
@@ -52,12 +59,8 @@ No backend. No frameworks. Fully client-side.
 
 ---
 
-## 🚀 Live Demo (GitHub Pages)
-
-👉 **Demo Link:**  
 
 
-(Replace `YOUR_USERNAME` with your GitHub username)
 
 ---
 
