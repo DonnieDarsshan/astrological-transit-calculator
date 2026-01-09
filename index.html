@@ -2,10 +2,35 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Astrological Transit Calculator</title>
+<title>Astrological Transit Calculator </title>
+
+
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+
+
+
+
+/* ================= NOTE PATCH ================= */
+
+/* Proper note styling under title */
+.note{
+  text-align:center;        /* Centers note under title */
+  font-size:22px;           /* Smaller than heading */
+  color:#fde68a;            /* Soft gold color */
+  margin-top:-10px;         /* Pulls note closer to h1 */
+  margin-bottom:16px;       /* Space after note */
+  font-style:italic;        /* Looks like instruction */
+  opacity:0.9;              /* Slightly subtle */
+}
+
+
+
+
+
+
 body{
   background:#0e1f1c;
   color:#f6e7b2;
@@ -47,6 +72,15 @@ th{background:#123c3c}
 <body>
 
 <h1>Astrological Transit Calculator</h1>
+
+<!-- NOTE START -->
+<p class="note">
+  |||  Use Your Moon’s Nakshatra  ||  ALP Nakshatra ||   1 to 12 Cusp's Starlord  |||
+ 
+</p>
+<!-- NOTE END -->
+
+
 
 <div class="panel">
 
@@ -108,6 +142,20 @@ th{background:#123c3c}
 
 <input type="file" id="fileInput" accept=".json" style="display:none"/>
 <input type="file" id="swissInput" accept=".json" style="display:none"/>
+
+
+<script>
+/* =========================================================
+   GLOBAL PADA NUMBER (1–108)
+   ========================================================= */
+function getGlobalPadaNumber(nakIndex, pada){
+  // nakIndex starts from 0 (Ashwini = 0)
+  // pada starts from 1
+  return (nakIndex * 4) + pada;
+}
+</script>
+
+
 
 <script>
 /* ===================== DATA ===================== */
@@ -426,6 +474,15 @@ function mapSwissPlanet(name){
 }
 
 
+/* ===================== PIVOT PRESERVE PATCH ===================== */
+
+/*
+This function safely keeps the user-selected Nakshatra.
+It prevents Swiss JSON from overriding pivot selection.
+*/
+function preservePivot(){
+  return pivot.value || "";
+}
 
 
 
@@ -442,14 +499,12 @@ function loadSwiss(){
     const reader = new FileReader();
     reader.onload = ()=>{
       const json = JSON.parse(reader.result);
+
+		/* Preserve user-selected pivot */
+		const savedPivot = preservePivot();
       if(!json.planets) return alert("Invalid Swiss JSON");
 
-      /* === AUTO PIVOT === */
-      if(json.planets.Chandra !== undefined){
-        pivot.value = degreeToPada(json.planets.Chandra);
-      }else if(json.planets.Moon !== undefined){
-        pivot.value = degreeToPada(json.planets.Moon);
-      }
+      
 
       /* === MAJOR PLANETS === */
       [...majorBody.querySelectorAll("tr")].forEach(tr=>{
@@ -492,6 +547,13 @@ function loadSwiss(){
           }
         }
       });
+
+		/* Restore pivot if user already selected one */
+		if(savedPivot){
+		  pivot.value = savedPivot;
+		}
+
+
 
       setTimeout(recalc,0);
     };
