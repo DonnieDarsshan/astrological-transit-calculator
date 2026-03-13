@@ -39,6 +39,8 @@ body{
 }
 h1{text-align:center;color:#facc15}
 .panel{border:2px solid #c9a227;padding:14px;margin-bottom:18px}
+
+
 select,button,input{
   background:#102a2a;
   color:#fef3c7;
@@ -46,6 +48,46 @@ select,button,input{
   padding:6px;
   font-weight:700;
 }
+
+/* ===== DARK DROPDOWN OPTIONS ===== */
+
+select option{
+  background:#0e1f1c;
+  color:#fef3c7;
+}
+
+/* ===== DARK SCROLLBAR ===== */
+
+select{
+  scrollbar-width:thin;
+  scrollbar-color:#c9a227 #0e1f1c;
+}
+
+/* Chrome / Edge / Brave */
+
+select::-webkit-scrollbar{
+  width:10px;
+}
+
+select::-webkit-scrollbar-track{
+  background:#0e1f1c;
+}
+
+select::-webkit-scrollbar-thumb{
+  background:#c9a227;
+  border-radius:6px;
+}
+
+select::-webkit-scrollbar-thumb:hover{
+  background:#facc15;
+}
+
+
+
+
+
+
+
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #c9a227;padding:6px;text-align:center}
 th{background:#123c3c}
@@ -53,6 +95,41 @@ th{background:#123c3c}
 .tara-good{color:#22c55e;font-weight:800}
 .tara-bad{color:#ef4444;font-weight:800}
 .tara-mixed{color:#fb923c;font-weight:800}
+
+
+
+
+/* ================= TRANSIT PANEL (EGYPTIAN THEME) ================= */
+
+/* ===== TRANSIT DATE PANEL ===== */
+
+.transit-panel{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+
+  padding:6px 10px;
+  margin-bottom:8px;
+
+  background:#102a2a;
+
+  border:1px solid #c9a227;
+  border-radius:4px;
+
+  font-weight:700;
+  font-size:14px;
+  color:#f6e7b2;
+}
+
+#transitDateValue{
+  letter-spacing:0.5px;
+  color:#fef3c7;
+  font-size:16px;
+}
+
+
+
 
 .gold-label{
   display:inline-block;
@@ -88,14 +165,14 @@ th{background:#123c3c}
   <select id="pivot" onchange="recalc()" oninput="recalc()"></select>
 
   <label style="margin-left:10px">
-    <input type="radio" name="sys" value="vedic" checked onchange="recalc()"> Vedic
-  </label>
-  <label>
-    <input type="radio" name="sys" value="kp" onchange="recalc()"> KP
-  </label>
+  <input type="radio" name="sys" value="vedic" onchange="recalc()"> Vedic
+</label>
+<label>
+  <input type="radio" name="sys" value="kp" checked onchange="recalc()"> KP
+</label>
 
   <label style="margin-left:14px">
-    <input type="checkbox" id="ignorePadas" onchange="recalc()"> Ignore Padas
+    <input type="checkbox" id="ignorePadas" checked onchange="recalc()"> Ignore Padas
   </label>
 
   <label style="margin-left:14px">
@@ -114,7 +191,18 @@ th{background:#123c3c}
 
 <div class="panel">
 
-  <div class="section">Major Planets</div>
+<!-- TRANSIT DATE PANEL -->
+<div id="transitBar" class="transit-panel">
+  <span class="gold-label">Transit Date</span>
+  <span id="transitDateValue">--</span>
+</div>
+
+
+
+
+<div class="section">Major Planets</div>
+
+
   <table>
     <thead>
       <tr><th>Planet</th><th>Transit Nakshatra</th><th>House</th><th>Tara</th><th>Retro</th></tr>
@@ -241,7 +329,10 @@ majorPlanets.forEach(p=>{
       <td><select onchange="onPlanetChange(this,'${p.name}')" oninput="onPlanetChange(this,'${p.name}')">${buildSelect()}</select></td>
       <td class="house"></td>
       <td class="tara"></td>
-      <td>${p.retro ? '<input type="checkbox" checked onchange="recalc()">' : ''}</td>
+      <td>${p.name==="Rahu" || p.name==="Ketu"
+        ? '<input type="checkbox" onchange="recalc()">'
+        : (p.retro ? '<input type="checkbox" checked onchange="recalc()">' : '')
+      }</td>
     </tr>
   `);
 });
@@ -439,6 +530,38 @@ function clearAll(){
 <script>
 /* ===================== SWISS EPHEMERIS LOADER ===================== */
 
+
+
+/* ===================== IST DATE FORMATTER ===================== */
+
+function formatTransitDateIST(utcString){
+
+  const date = new Date(utcString);
+
+  const options = {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12:false
+  };
+
+  const parts = new Intl.DateTimeFormat("en-IN",options).formatToParts(date);
+
+  const map = {};
+  parts.forEach(p=>map[p.type]=p.value);
+
+  return `${map.day}-${map.month}-${map.year}  ${map.hour}:${map.minute}:${map.second}`;
+}
+
+
+
+
+
+
 /* degree → nakshatra+pada */
 function degreeToPada(deg){
   deg = ((deg % 360) + 360) % 360;
@@ -500,9 +623,19 @@ function loadSwiss(){
     reader.onload = ()=>{
       const json = JSON.parse(reader.result);
 
-		/* Preserve user-selected pivot */
-		const savedPivot = preservePivot();
-      if(!json.planets) return alert("Invalid Swiss JSON");
+/* Preserve user-selected pivot */
+	const savedPivot = preservePivot();
+
+	if(!json.planets) return alert("Invalid Swiss JSON");
+
+	/* ===== TRANSIT DATE FROM JSON ===== */
+	if(json.meta && json.meta.datetime_utc){
+
+	  const istDate = formatTransitDateIST(json.meta.datetime_utc);
+
+	  document.getElementById("transitDateValue").innerText = istDate;
+
+	}
 
       
 
